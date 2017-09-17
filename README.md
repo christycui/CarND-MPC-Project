@@ -1,7 +1,5 @@
 # CarND-Controls-MPC
 
----
-
 ## The model
 
 - Vehicle State: there are 6 variables captured in vehicle state: x and y positions (according to vehicle coordinate), psi (vehicle orientation), v (speed), cte (cross track error) and epsi (orientation error).
@@ -22,9 +20,28 @@ fg[1 + epsi_start + t] = epsi1 - (psi0 - psides0 + v0/Lf*delta0*dt);
 
 ## Timestep length (N) and duration (dt)
 
-The N and dt values are large chosen by trial and error. I've found that dt smaller or equal than 0.05 makes the vehicle swirl more when N is kept constant. In choosing N, I try to keep it small (decrease latency) while making sure enough distance is being predicted. 
+The N and dt values are large chosen by trial and error. I've found that dt smaller or equal than 0.05 makes the vehicle swirl more when N is kept constant. I've attempted values from 0.05 to 0.25. In choosing N, I try to keep it small (decrease latency) while making sure enough distance is being predicted. I've attempted values from 10 to 30.
 
 My final result of N = 15 and dt = 0.08 work pretty well together. The vehicle is able to drive smoothly at a speed around 35 - 40 mph.
+
+## Waypoints: fitting Polynomial
+
+When the controller receives data from the simulator, the x and y coordinates are in global coordinates. I transformed them into vehicle coordinates given global vehicle position and global waypoints. Then, I fitted a three-order polynomial using the first 6 points because those closest ones are what we cared about the most. 
+
+After that, I set up the initial vehicle state (x, y, psi, v, cte, epsi) in vehicle orientation with latency considered which is detailed in the latency section. At initial state, since the vehicle coordinates are already in the car's heading, we have y = 0 and psi = 0. Therefore, we have the following equations. We also assume that before actuator commands are carried out, vehicle drives a straight line.
+
+```
+x_ = v*dt;
+y_ = 0;
+psi_ = - v/Lf * steering * dt;
+v_ = v + throttle * dt;
+
+cte =  polyeval(coeffs, 0);
+epsi = - atan(coeffs[1]);
+
+cte_ = cte + (v * sin(epsi) * dt);
+epsi_ = epsi - (v/Lf * steering * dt);
+```
 
 ## Cost Function
 
